@@ -1,0 +1,134 @@
+<core:View
+	xmlns:core="sap.ui.core"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns:com="sap.suite.ui.commons"
+	xmlns:fb="sap.ui.comp.filterbar"
+	xmlns:sfb="sap.ui.comp.smartfilterbar"
+	xmlns:l="sap.ui.layout"
+	xmlns="sap.m"
+	controllerName="total.tsmscontracts.view.Products" >
+	<Page 
+		id="productsPage"
+		title="{i18n>productsTitle}"
+		showNavButton="true" 
+		navButtonPress="onNavBack" >
+		<content>
+			<sfb:SmartFilterBar
+				entityType="Product"
+				position="Center"
+				initialise="onInitialise"
+				search="onSearch"
+				reset="onReset" >
+				<!--
+				<sfb:filterItems>
+					<fb:FilterItem
+						id="description"
+						label="Short description"
+						name="ShortDescription">
+						<fb:control>
+							<Input type="Text"/>
+						</fb:control> 
+					</fb:FilterItem>
+				</sfb:filterItems>
+				-->
+				<sfb:controlConfiguration>
+					<sfb:ControlConfiguration
+						key="ShortDescription"
+						label="Short description"
+						groupId="_BASIC"
+						index="1"
+						visible="true"
+						hasValueHelpDialog="false"
+						filterType="auto"
+						controlType="auto">
+					</sfb:ControlConfiguration>
+					<sfb:ControlConfiguration
+						key="Plant"
+						index="2"
+						label="Plant"
+						groupId="_BASIC">
+					</sfb:ControlConfiguration>
+					<sfb:ControlConfiguration
+						key="MaterialGroup"
+						index="1"
+						visible="true"
+						filterType="auto"
+						controlType="auto"
+						groupId="_ADVANCED"
+						label="Material group">
+					</sfb:ControlConfiguration>
+					<sfb:ControlConfiguration
+						key="ProductHierarchy"
+						visible="true"
+						index="2"
+						label="Product Hierarchy"
+						groupId="_ADVANCED">
+						<sfb:defaultFilterValues>
+							<sfb:SelectOption low="Z" />
+						</sfb:defaultFilterValues>
+					</sfb:ControlConfiguration>
+				</sfb:controlConfiguration>
+			</sfb:SmartFilterBar>
+			<Table
+				id="T1P1"
+				inset="false"
+				mode="MultiSelect"	
+				enableBusyIndicator="true"
+				growing="true"
+				growingThreshold="10"
+				selected="true"
+				selectionChange="onSelChange" >
+				<columns>
+					<Column
+						minScreenWidth="Tablet"
+						demandPopin="true">
+						<Text text="Material" />
+					</Column>
+					<Column
+						minScreenWidth="Tablet"
+						demandPopin="true">
+						<Text text="Category" />
+					</Column>
+					<Column
+						width="10em"
+						minScreenWidth="Tablet"
+						demandPopin="true">
+						<Text text="Unit" />
+					</Column>
+					<Column
+						hAlign="Right">
+						<Text text="Price" />
+					</Column>
+				</columns>
+				<items>
+					<!--
+					<ColumnListItem>
+						<cells>
+							<ObjectIdentifier
+								title="{ShortDescription}"
+								text="{Material}"
+								class="sapMTableContentMargin" />
+							<Text
+								text="{CategoryName}" />
+							<Text
+								text="{QuantityUnit}" />
+							<ObjectNumber
+								number="{Price}"
+								unit="{Currency}" />
+						</cells>
+					</ColumnListItem>
+					-->
+				</items>
+			</Table>
+		</content>
+		<footer>
+			<Toolbar>
+				<ToolbarSpacer/>
+				<Button
+					text="Return"
+					type="Emphasized" 
+					press="onReturn" />
+			</Toolbar>
+		</footer>
+	</Page>
+</core:View>

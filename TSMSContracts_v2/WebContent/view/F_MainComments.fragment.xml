@@ -1,0 +1,40 @@
+<core:FragmentDefinition
+	xmlns:l="sap.ui.layout"
+	xmlns:f="sap.ui.layout.form"
+	xmlns:cl="sap.ui.commons.layout"
+	xmlns:core="sap.ui.core"
+	xmlns="sap.m">
+	<l:Grid
+		defaultSpan="L12 M12 S12"
+		width="auto">
+		<l:content>
+			<f:Form id="F_MainComments"
+				minWidth="1024"
+				maxContainerCols="2"
+				editable="true">
+				<f:layout>
+					<f:ResponsiveGridLayout
+						labelSpanL="2"
+						labelSpanM="2"
+						emptySpanL="7"
+						emptySpanM="7"
+						columnsL="2"
+						columnsM="2" />
+				</f:layout>
+				<f:formContainers>
+					<f:FormContainer>
+						<f:formElements>
+							<f:FormElement label="Comments">
+								<TextArea
+									cols="40"
+									rows="6"
+									placeholder="Enter any comment related to the current contract here">
+								</TextArea>
+							</f:FormElement>
+						</f:formElements>
+					</f:FormContainer>
+				</f:formContainers>
+			</f:Form>
+		</l:content>
+	</l:Grid>
+ </core:FragmentDefinition>

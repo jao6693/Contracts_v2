@@ -1,0 +1,95 @@
+<core:FragmentDefinition
+	xmlns:l="sap.ui.layout"
+	xmlns:f="sap.ui.layout.form"
+	xmlns:c="sap.ui.commons"
+	xmlns:cl="sap.ui.commons.layout"
+	xmlns:core="sap.ui.core"
+	xmlns="sap.m">
+	<l:Grid
+		defaultSpan="L12 M12 S12"
+		width="auto">
+		<l:content>
+			<f:Form id="F_MainSupplier"
+				minWidth="1024"
+				maxContainerCols="2"
+				editable="true">
+				<f:layout>
+					<f:ResponsiveGridLayout
+						labelSpanL="2"
+						labelSpanM="2"
+						emptySpanL="6"
+						emptySpanM="6"
+						columnsL="1"
+						columnsM="1" />
+				</f:layout>
+				<f:formContainers>
+					<f:FormContainer>
+						<f:formElements>
+							<f:FormElement label="Supplier ID">
+								<f:fields>
+									<Input 
+										type="Text"
+										value="{SupplierId}" 
+										showValueHelp="true" 
+										valueHelpRequest="onSupplierF4" />
+								</f:fields>
+							</f:FormElement>
+							<f:FormElement label="Supplier name">
+								<f:fields>
+									<Text text="{SupplierName}" />
+								</f:fields>
+							</f:FormElement>
+						</f:formElements>
+					</f:FormContainer>
+					<f:FormContainer>
+						<f:formElements>
+							<f:FormElement>
+								<c:HorizontalDivider>
+								</c:HorizontalDivider>
+							</f:FormElement>
+						</f:formElements>
+					</f:FormContainer>
+					<f:FormContainer title="Address">
+						<f:formElements>
+							<f:FormElement label="Street">
+								<f:fields>
+									<Text text="{HouseNumber} {Street}" />
+								</f:fields>
+							</f:FormElement>
+							<f:FormElement label="Area">
+								<f:fields>
+									<Text text="{City}" />
+								</f:fields>
+								<f:fields>
+									<Text text="{Country}" />
+								</f:fields>
+							</f:FormElement>
+						</f:formElements>
+					</f:FormContainer>
+					<f:FormContainer>
+						<f:formElements>
+							<f:FormElement>
+								<c:HorizontalDivider>
+								</c:HorizontalDivider>
+							</f:FormElement>
+						</f:formElements>
+					</f:FormContainer>
+					<f:FormContainer title="Communication">
+						<f:formElements>
+							<f:FormElement label="Phone number">
+								<f:fields>
+									<Text text="{PhoneNumber}" />
+								</f:fields>
+							</f:FormElement>
+							<f:FormElement label="Email address">
+								<f:fields>
+									<Text text="{EmailAddress}" />
+								</f:fields>
+							</f:FormElement>
+						</f:formElements>
+					</f:FormContainer>
+				</f:formContainers>
+			</f:Form>
+		</l:content>
+	</l:Grid>
+ </core:FragmentDefinition>

@@ -1,0 +1,194 @@
+<core:View
+	xmlns:core="sap.ui.core"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns:com="sap.suite.ui.commons"
+	xmlns:l="sap.ui.layout"
+	xmlns="sap.m"
+	xmlns:cd="http://schemas.sap.com/sapui5/extension/sap.ui.core.CustomData/1"
+	controllerName="total.tsmscontracts.view.Main" >
+	<Page
+		id="mainPage"
+		title="{i18n>mainTitle}" >
+		<headerContent>
+			<Button
+				icon="sap-icon://add-product" 
+				press="onAddProduct"
+				type="Transparent" />
+		</headerContent>
+		<content>
+			<ObjectHeader
+				id="ohMain"
+				title="{i18n>mainHeaderTitle}"
+				intro="This is a new UI to create a contract directly in SAP"
+				responsive="true"
+				binding="{local>contractHeader}"
+				number="0"
+				numberUnit="{local>currencyCode}"
+				numberState="Success"
+				backgroundDesign="Translucent">
+				<attributes>
+					<ObjectAttribute
+						title="Created at"
+						text="{local>createdAt}">
+					</ObjectAttribute>
+					<ObjectAttribute
+						title="Created by"
+						text="{local>createdBy}">
+					</ObjectAttribute>
+				</attributes>
+				<statuses>
+					<ObjectStatus
+						title="Status"
+						text="Initial"
+						state="Warning"/>
+				</statuses>
+				<headerContainer>
+					<IconTabBar
+						id="itbMain"
+						expanded="true"
+						selectedKey="InfoData"
+						select="onTabSelect">
+						<items>
+							<IconTabFilter
+								key="InfoData"
+								icon="sap-icon://blank-tag"
+								text="{i18n>infoDataTab}">
+								<!-- content is lazy loaded -->
+								<content>
+									<core:Fragment fragmentName="total.tsmscontracts.view.F_MainInfo" type="XML"/>
+								</content>
+							</IconTabFilter>
+							<IconTabFilter
+								key="SupplierData"
+								icon="sap-icon://customer-and-supplier"
+								text="{i18n>supplierDataTab}">
+								<!-- content is lazy loaded -->
+								<content>
+									<core:Fragment fragmentName="total.tsmscontracts.view.F_MainSupplier" type="XML"/>
+								</content>
+							</IconTabFilter>
+							<IconTabFilter
+								key="NotesData"
+								icon="sap-icon://attachment"
+								text="{i18n>notesDataTab}">
+								<!-- content is lazy loaded -->
+								<content>
+									<core:Fragment fragmentName="total.tsmscontracts.view.F_MainComments" type="XML"/>
+								</content>
+							</IconTabFilter>
+						</items>
+					</IconTabBar>
+				</headerContainer>
+			</ObjectHeader>
+			<Table
+				id="MT1"
+				noDataText="No product selected"
+				items="{
+					path: 'local>/products'
+				}" >
+				<headerToolbar>
+					<Toolbar>
+						<Label text="Contract Items"></Label>
+						<ToolbarSpacer />
+					</Toolbar>
+				</headerToolbar>
+				<columns>
+					<Column
+						width="15%"
+						vAlign="Middle"
+						minScreenWidth="Tablet"
+						demandPopin="true">
+						<Text text="ID" />
+					</Column>
+					<Column
+						vAlign="Middle"
+						minScreenWidth="Tablet"
+						demandPopin="true">
+						<Text text="Description" />
+					</Column>
+					<Column
+						hAlign="Left"
+						vAlign="Middle"
+						width="30%"
+						minScreenWidth="Tablet"
+						demandPopin="true">
+						<Text text="Quantity" />
+					</Column>
+					<Column
+						hAlign="Left"
+						vAlign="Middle"
+						minScreenWidth="Tablet"
+						demandPopin="true">
+						<Text text="Price" />
+					</Column>
+					<Column
+						hAlign="Center"
+						vAlign="Middle"
+						width="5%"
+						minScreenWidth="Tablet"
+						demandPopin="true">
+						<Text text="Config." />
+					</Column>
+					<Column
+						hAlign="Center"
+						vAlign="Middle"
+						width="5%"
+						minScreenWidth="Tablet"
+						demandPopin="true">
+						<Text text="Action" />
+					</Column>
+				</columns>
+				<items>
+					<ColumnListItem>
+						<Text text="{local>Material}" />
+						<Text text="{local>ShortDescription}" />
+						<Input
+							type="Number"
+							value="{local>Weight}"
+							description="{local>QuantityUnit}"
+							width="150px"
+							fieldWidth="80%" />
+						<Input
+							type="Number"
+							value="{local>Price}"
+							description="{local>CurrencyCode}"
+							width="150px"
+							fieldWidth="80%" />
+						<Button
+							icon="sap-icon://action-settings"
+							type="Transparent"
+							press="onConfigure" >
+							<layoutData>
+								<FlexItemData growFactor="1" />
+							</layoutData>
+							<customData>
+								<core:CustomData
+									key="productId"
+									value="{local>Material}" />
+							</customData>
+						</Button>
+						<!-- attach custom data to button to identify row  -->
+						<Button
+							icon="sap-icon://delete"
+							type="Transparent"
+							press="onDelete"
+							cd:productId="{local>Material}" >
+							<layoutData>
+								<FlexItemData growFactor="1" />
+							</layoutData>
+						</Button>
+					</ColumnListItem>
+				</items>
+			</Table>
+		</content>
+		<footer>
+			<Toolbar>
+				<ToolbarSpacer/>
+				<Button
+					text="Save"
+					type="Emphasized" 
+					press="onSave" />
+			</Toolbar>
+		</footer>
+	</Page>
+</core:View>

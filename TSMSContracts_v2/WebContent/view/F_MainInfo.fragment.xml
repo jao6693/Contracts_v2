@@ -1,0 +1,96 @@
+<core:FragmentDefinition
+	xmlns:l="sap.ui.layout"
+	xmlns:f="sap.ui.layout.form"
+	xmlns:c="sap.ui.commons"
+	xmlns:cl="sap.ui.commons.layout"
+	xmlns:core="sap.ui.core"
+	xmlns="sap.m">
+	<l:Grid
+		defaultSpan="L12 M12 S12"
+		width="auto">
+		<l:content>
+			<f:Form id="F_MainInfo"
+				minWidth="1024"
+				maxContainerCols="2"
+				editable="true">
+				<f:layout>
+					<f:ResponsiveGridLayout
+						labelSpanL="2"
+						labelSpanM="2"
+						emptySpanL="6"
+						emptySpanM="6"
+						columnsL="1"
+						columnsM="1" />
+				</f:layout>
+				<f:formContainers>
+					<f:FormContainer>
+						<f:formElements>
+							<f:FormElement label="Negociated by">
+								<f:fields>
+									<Input value="{local>negociatedBy}" />
+								</f:fields>
+								<f:fields>
+									<DateTimeInput
+										type="Date"
+										dateValue="{local>negociatedAt}" />
+								</f:fields>
+							</f:FormElement>
+						</f:formElements>
+					</f:FormContainer>
+					<f:FormContainer>
+						<f:formElements>
+							<f:FormElement>
+								<c:HorizontalDivider>
+								</c:HorizontalDivider>
+							</f:FormElement>
+						</f:formElements>
+					</f:FormContainer>
+					<f:FormContainer title="Purchasing information">
+						<f:formElements>
+							<f:FormElement
+								id="CompanyCode"
+								label="Company Code" >
+								<f:fields>
+									<Select
+										width="70%"
+										change="onCompanyChange">
+										<items>
+											<core:Item key="0100" text="TOTAL Marketing Services" />
+											<core:Item key="0750" text="TOTAL UK Limited" />
+											<core:Item key="0793" text="TOTAL España, SAU" />
+										</items>
+									</Select>
+								</f:fields>
+							</f:FormElement>
+							<f:FormElement label="Purchasing Area">
+								<f:fields>
+									<Select
+										change="onPurchOrgChange">
+										<items>
+											<core:Item key="SP02" text="Products" />
+											<core:Item key="SP03" text="Services" />
+										</items>
+									</Select>
+								</f:fields>
+								<f:fields>
+									<Select
+										change="onPurchGrpChange">
+										<items>
+											<core:Item key="SH1" text="ATL Pilotage" />
+											<core:Item key="SH2" text="MED Pilotage" />
+											<core:Item key="SH3" text="UK Pilotage" />
+											<core:Item key="SH4" text="DE Pilotage" />
+											<core:Item key="SH5" text="ARA Pilotage" />
+											<core:Item key="SH6" text="Supply TOM siège" />
+											<core:Item key="SH7" text="Supply France" />
+										</items>
+									</Select>
+								</f:fields>
+							</f:FormElement>
+						</f:formElements>
+					</f:FormContainer>
+				</f:formContainers>
+			</f:Form>
+		</l:content>
+	</l:Grid>
+ </core:FragmentDefinition>
