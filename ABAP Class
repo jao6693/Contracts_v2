@@ -1,0 +1,823 @@
+class ZCL_GW_PURCH_SPOT_CO2_DPC_EXT definition
+  public
+  inheriting from ZCL_GW_PURCH_SPOT_CO2_DPC
+  create public .
+
+public section.
+
+  methods /IWBEP/IF_MGW_APPL_SRV_RUNTIME~CREATE_DEEP_ENTITY
+    redefinition .
+protected section.
+
+  methods PERSONALIZATIONC_GET_ENTITYSET
+    redefinition .
+  methods PRODUCTCOLLECTIO_GET_ENTITYSET
+    redefinition .
+  methods SUPPLIERCOLLECTI_GET_ENTITYSET
+    redefinition .
+  methods SUPPLIERCOLLECTI_GET_ENTITY
+    redefinition .
+private section.
+ENDCLASS.
+
+
+
+CLASS ZCL_GW_PURCH_SPOT_CO2_DPC_EXT IMPLEMENTATION.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_GW_PURCH_SPOT_CO2_DPC_EXT->/IWBEP/IF_MGW_APPL_SRV_RUNTIME~CREATE_DEEP_ENTITY
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_ENTITY_NAME                 TYPE        STRING(optional)
+* | [--->] IV_ENTITY_SET_NAME             TYPE        STRING(optional)
+* | [--->] IV_SOURCE_NAME                 TYPE        STRING(optional)
+* | [--->] IO_DATA_PROVIDER               TYPE REF TO /IWBEP/IF_MGW_ENTRY_PROVIDER
+* | [--->] IT_KEY_TAB                     TYPE        /IWBEP/T_MGW_NAME_VALUE_PAIR(optional)
+* | [--->] IT_NAVIGATION_PATH             TYPE        /IWBEP/T_MGW_NAVIGATION_PATH(optional)
+* | [--->] IO_EXPAND                      TYPE REF TO /IWBEP/IF_MGW_ODATA_EXPAND
+* | [--->] IO_TECH_REQUEST_CONTEXT        TYPE REF TO /IWBEP/IF_MGW_REQ_ENTITY_C(optional)
+* | [<---] ER_DEEP_ENTITY                 TYPE REF TO DATA
+* | [!CX!] /IWBEP/CX_MGW_BUSI_EXCEPTION
+* | [!CX!] /IWBEP/CX_MGW_TECH_EXCEPTION
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+METHOD /iwbep/if_mgw_appl_srv_runtime~create_deep_entity.
+
+* local data declaration
+  TYPES:
+        BEGIN OF y_contract_io,
+           header                TYPE zcl_gw_purch_spot_co2_mpc=>ts_purchasecontractheader,
+           purchasecontractitems TYPE STANDARD TABLE OF zcl_gw_purch_spot_co2_mpc=>ts_purchasecontractitem WITH DEFAULT KEY,
+         END  OF y_contract_io.
+
+  FIELD-SYMBOLS:
+        <item>         TYPE zcl_gw_purch_spot_co2_mpc=>ts_purchasecontractitem.
+
+  DATA:
+        entityset_name TYPE string,
+* contract data (UI)
+        s_request      TYPE y_contract_io,
+        s_response     TYPE y_contract_io,
+* contract data (SAP)
+        s_header       TYPE bapimeoutheader,
+        s_headerx      TYPE bapimeoutheaderx,
+        s_tech         TYPE bapimeouttech,
+        s_item         TYPE bapimeoutitem,
+        t_items        TYPE TABLE OF bapimeoutitem,
+        s_itemx        TYPE bapimeoutitemx,
+        t_itemsx       TYPE TABLE OF bapimeoutitemx,
+* error handling
+        s_msg          TYPE bapiret2,
+        t_msg          TYPE TABLE OF bapiret2,
+        r_msg_cont     TYPE REF TO /iwbep/if_message_container,
+* work data
+        contract_no    TYPE ebeln,
+        item_no        TYPE ebelp,
+        doc_type       TYPE esart     VALUE 'ZSPS',
+        purch_org      TYPE ekorg     VALUE 'SP02',
+        purch_grp      TYPE ekgrp     VALUE 'SH7',
+        doc_date       TYPE ebdat,
+        parva          TYPE xuvalue,
+        dummy          TYPE string,
+        subrc          TYPE sy-subrc.
+
+  TRY.
+* get entity set name
+    entityset_name = io_tech_request_context->get_entity_set_name( ).
+
+    CASE entityset_name.
+      WHEN 'PurchaseContractHeaderCollection'.
+        CLEAR:
+              contract_no,
+              item_no,
+              purch_org,
+              purch_grp,
+              doc_date,
+              s_header,
+              s_headerx,
+              s_tech,
+              s_item,
+              t_items[],
+              s_itemx,
+              t_itemsx[].
+
+* set default values
+        SELECT SINGLE parva
+          INTO parva
+          FROM usr05
+         WHERE bname = sy-uname
+           AND parid = 'EKO'.    " purchasing org
+
+        IF sy-subrc = 0.
+          purch_org = parva.
+        ENDIF.
+
+        SELECT SINGLE parva
+          INTO parva
+          FROM usr05
+         WHERE bname = sy-uname
+           AND parid = 'EKP'.    " purchasing group
+
+        IF sy-subrc = 0.
+          purch_grp = parva.
+        ENDIF.
+
+        doc_date = sy-datum.
+
+        s_tech-no_messaging       = abap_true.
+        s_tech-no_message_req     = abap_true.
+        s_tech-no_authority_check = abap_true.
+
+* read data from request header
+        io_data_provider->read_entry_data(
+             IMPORTING
+                  es_data = s_request-header
+                  ).
+
+* read data from request items
+        io_data_provider->read_entry_data(
+             IMPORTING
+                  es_data = s_request
+                  ).
+
+* map header information
+*        s_header-number      = '#1'.
+        s_headerx-number     = abap_true.
+        s_header-comp_code   = s_request-header-comp_code.
+        s_headerx-comp_code  = abap_true.
+        s_header-doc_type    = 'ZSPS'.
+        s_headerx-doc_type   = abap_true.
+        s_header-creat_date  = sy-datum.
+        s_headerx-creat_date = abap_true.
+        s_header-created_by  = sy-uname.
+        s_headerx-created_by = abap_true.
+        s_header-langu       = 'F'.
+        s_headerx-langu      = abap_true.
+        s_header-langu_iso   = 'FR'.
+        s_headerx-langu_iso  = abap_true.
+        s_header-vendor      = s_request-header-vendor.
+        s_headerx-vendor     = abap_true.
+        s_header-pmnttrms    = 'ZCFR'.
+        s_headerx-pmnttrms   = abap_true.
+        s_header-purch_org   = s_request-header-purch_org.
+        IF s_header-purch_org IS INITIAL.
+          s_header-purch_org = purch_org.
+        ENDIF.
+        s_headerx-purch_org  = abap_true.
+        s_header-pur_group   = purch_grp.
+        s_headerx-pur_group  = abap_true.
+        s_header-currency    = s_request-header-currency.
+        s_headerx-currency   = abap_true.
+        s_header-doc_date    = doc_date.
+        s_headerx-doc_date   = abap_true.
+
+* map items information
+        LOOP AT s_request-purchasecontractitems ASSIGNING <item>.
+          CLEAR s_item.
+          item_no            = item_no + 1.
+          s_item-item_no     = item_no.
+          s_itemx-item_no    = abap_true.
+          s_item-short_text  = 'TSMS Contract Item'.
+          s_itemx-short_text = abap_true.
+          s_item-material    = <item>-material.
+          s_itemx-material   = abap_true.
+*          s_item-plant       = <item>-plant.
+*          s_itemx-plant      = abap_true.
+          s_item-target_qty  = <item>-target_qty.
+          s_itemx-target_qty = abap_true.
+          s_item-po_unit     = <item>-po_unit.
+          s_itemx-po_unit    = abap_true.
+          s_item-net_price   = <item>-net_price.
+          s_itemx-net_price  = abap_true.
+          s_item-price_unit  = <item>-price_unit.
+          s_itemx-price_unit = abap_true.
+          s_item-pricedate   = 5.
+          s_itemx-pricedate  = abap_true.
+          s_item-price_date  = sy-datum.
+          s_itemx-price_date = abap_true.
+* insert entries in internal tables
+          INSERT s_item  INTO TABLE t_items.
+          INSERT s_itemx INTO TABLE t_itemsx.
+        ENDLOOP.
+
+* create contract
+        CALL FUNCTION 'BAPI_CONTRACT_CREATE'
+             EXPORTING
+                  header             = s_header
+                  headerx            = s_headerx
+                  technical_data     = s_tech
+             IMPORTING
+                  purchasingdocument = contract_no
+             TABLES
+                  item               = t_items
+                  itemx              = t_itemsx
+                  return             = t_msg
+             EXCEPTIONS
+                  OTHERS             = 1.
+
+        IF sy-subrc = 0.
+* map all BAPI messages to response header
+          r_msg_cont = me->mo_context->get_message_container( ).
+
+          LOOP AT t_msg INTO s_msg.
+            r_msg_cont->add_message(
+                 iv_msg_type               = s_msg-type
+                 iv_msg_id                 = s_msg-id
+                 iv_msg_number             = s_msg-number
+                 iv_add_to_response_header = abap_true
+            ).
+          ENDLOOP.
+
+          READ TABLE t_msg TRANSPORTING NO FIELDS
+            WITH KEY type = 'E'.
+          IF sy-subrc = 0.
+* an error occured during the contract creation
+            RAISE EXCEPTION TYPE /iwbep/cx_mgw_busi_exception.
+          ELSE.
+*>>> Contract &1 created successfully
+            MESSAGE s004(jksd) WITH contract_no
+               INTO dummy.
+* map message as leading message to response header
+            r_msg_cont->add_message(
+                 iv_msg_type               = 'S'
+                 iv_msg_id                 = 'JKSD'
+                 iv_msg_number             = '004'
+                 iv_msg_v1                 = sy-msgv1
+                 iv_is_leading_message     = abap_true
+                 iv_add_to_response_header = abap_true
+            ).
+* map application data to response
+            s_response               = s_request.
+            s_response-header-number = contract_no.
+* return entity contract with references to application data
+            copy_data_to_ref(
+                 EXPORTING
+                      is_data = s_response-header
+                 CHANGING
+                      cr_data = er_deep_entity
+                      ).
+          ENDIF.
+        ELSE.
+          RAISE EXCEPTION TYPE /iwbep/cx_mgw_tech_exception.
+        ENDIF.
+      WHEN OTHERS.
+* not supported
+    ENDCASE.
+
+  CATCH /iwbep/cx_mgw_busi_exception.
+* business error handling
+    RAISE EXCEPTION TYPE /iwbep/cx_mgw_busi_exception.
+  CATCH /iwbep/cx_mgw_tech_exception.
+* technical error handling
+    RAISE EXCEPTION TYPE /iwbep/cx_mgw_tech_exception.
+  ENDTRY.
+
+ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Protected Method ZCL_GW_PURCH_SPOT_CO2_DPC_EXT->PERSONALIZATIONC_GET_ENTITYSET
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_ENTITY_NAME                 TYPE        STRING
+* | [--->] IV_ENTITY_SET_NAME             TYPE        STRING
+* | [--->] IV_SOURCE_NAME                 TYPE        STRING
+* | [--->] IT_FILTER_SELECT_OPTIONS       TYPE        /IWBEP/T_MGW_SELECT_OPTION
+* | [--->] IS_PAGING                      TYPE        /IWBEP/S_MGW_PAGING
+* | [--->] IT_KEY_TAB                     TYPE        /IWBEP/T_MGW_NAME_VALUE_PAIR
+* | [--->] IT_NAVIGATION_PATH             TYPE        /IWBEP/T_MGW_NAVIGATION_PATH
+* | [--->] IT_ORDER                       TYPE        /IWBEP/T_MGW_SORTING_ORDER
+* | [--->] IV_FILTER_STRING               TYPE        STRING
+* | [--->] IV_SEARCH_STRING               TYPE        STRING
+* | [--->] IO_TECH_REQUEST_CONTEXT        TYPE REF TO /IWBEP/IF_MGW_REQ_ENTITYSET(optional)
+* | [<---] ET_ENTITYSET                   TYPE        ZCL_GW_PURCH_SPOT_CO2_MPC=>TT_PERSONALIZATION
+* | [<---] ES_RESPONSE_CONTEXT            TYPE        /IWBEP/IF_MGW_APPL_SRV_RUNTIME=>TY_S_MGW_RESPONSE_CONTEXT
+* | [!CX!] /IWBEP/CX_MGW_BUSI_EXCEPTION
+* | [!CX!] /IWBEP/CX_MGW_TECH_EXCEPTION
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+METHOD personalizationc_get_entityset.
+
+* local data declaration
+  DATA:
+        guid_22   TYPE guid_22,
+        s_entity  TYPE zcl_gw_purch_spot_co2_mpc=>ts_personalization,
+* user data
+        s_address TYPE bapiaddr3,
+        s_param   TYPE bapiparam,
+        t_params  TYPE TABLE OF bapiparam,
+* error handling
+        t_msg     TYPE TABLE OF bapiret2,
+* work data
+        subrc     TYPE sy-subrc.
+
+  TRY.
+    CLEAR:
+          guid_22,
+          s_entity.
+
+* generate a GUID for personalization key
+    CALL FUNCTION 'GUID_CREATE'
+         IMPORTING
+              ev_guid_22 = guid_22
+         EXCEPTIONS
+              OTHERS     = 1.
+
+* get user information
+    CALL FUNCTION 'BAPI_USER_GET_DETAIL'
+         EXPORTING
+              username  = sy-uname
+         IMPORTING
+              address   = s_address
+         TABLES
+              parameter = t_params
+              return    = t_msg
+         EXCEPTIONS
+              OTHERS    = 1.
+
+* get purch org
+    READ TABLE t_params INTO s_param
+      WITH KEY parid = 'EKO'.
+    IF sy-subrc = 0.
+      s_entity-purch_org = s_param-parva.
+    ENDIF.
+
+* get purch grp
+    READ TABLE t_params INTO s_param
+      WITH KEY parid = 'EKG'.
+    IF sy-subrc = 0.
+      s_entity-purch_grp = s_param-parva.
+    ENDIF.
+
+* map personalization to entity and return information
+    s_entity-pers_id   = guid_22.
+    s_entity-user_id   = sy-uname.
+    s_entity-name_text = s_address-fullname.
+* purch org & purch grp already set
+    INSERT s_entity INTO TABLE et_entityset.
+
+  CATCH /iwbep/cx_mgw_busi_exception.
+  CATCH /iwbep/cx_mgw_tech_exception.
+  ENDTRY.
+
+ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Protected Method ZCL_GW_PURCH_SPOT_CO2_DPC_EXT->PRODUCTCOLLECTIO_GET_ENTITYSET
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_ENTITY_NAME                 TYPE        STRING
+* | [--->] IV_ENTITY_SET_NAME             TYPE        STRING
+* | [--->] IV_SOURCE_NAME                 TYPE        STRING
+* | [--->] IT_FILTER_SELECT_OPTIONS       TYPE        /IWBEP/T_MGW_SELECT_OPTION
+* | [--->] IS_PAGING                      TYPE        /IWBEP/S_MGW_PAGING
+* | [--->] IT_KEY_TAB                     TYPE        /IWBEP/T_MGW_NAME_VALUE_PAIR
+* | [--->] IT_NAVIGATION_PATH             TYPE        /IWBEP/T_MGW_NAVIGATION_PATH
+* | [--->] IT_ORDER                       TYPE        /IWBEP/T_MGW_SORTING_ORDER
+* | [--->] IV_FILTER_STRING               TYPE        STRING
+* | [--->] IV_SEARCH_STRING               TYPE        STRING
+* | [--->] IO_TECH_REQUEST_CONTEXT        TYPE REF TO /IWBEP/IF_MGW_REQ_ENTITYSET(optional)
+* | [<---] ET_ENTITYSET                   TYPE        ZCL_GW_PURCH_SPOT_CO2_MPC=>TT_PRODUCT
+* | [<---] ES_RESPONSE_CONTEXT            TYPE        /IWBEP/IF_MGW_APPL_SRV_RUNTIME=>TY_S_MGW_RESPONSE_CONTEXT
+* | [!CX!] /IWBEP/CX_MGW_BUSI_EXCEPTION
+* | [!CX!] /IWBEP/CX_MGW_TECH_EXCEPTION
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+METHOD productcollectio_get_entityset.
+
+* data declaration
+  FIELD-SYMBOLS:
+        <entity>        TYPE zcl_gw_purch_spot_co2_mpc=>ts_product.
+
+  DATA:
+        skip            TYPE int4,
+        top             TYPE int4,
+        t_keys          TYPE /iwbep/t_mgw_tech_pairs,
+        r_filter        TYPE REF TO /iwbep/if_mgw_req_filter,
+        t_filter_so     TYPE /iwbep/t_mgw_select_option,
+* application data
+        s_entity        TYPE zcl_gw_purch_spot_co2_mpc=>ts_product,
+        s_t023t         TYPE t023t,
+        t_t023t         TYPE TABLE OF t023t,
+        t_t023t_en      TYPE TABLE OF t023t,
+* work data
+        limit           TYPE i,
+        count           TYPE abap_bool,
+        inlinecount     TYPE abap_bool,
+        srch_maktg      TYPE maktg,
+        s_filter        TYPE /iwbep/s_mgw_select_option,
+        s_filter_r      TYPE /iwbep/s_cod_select_option,
+        filter          TYPE string,
+        subrc           TYPE sy-subrc.
+
+  TRY.
+    CLEAR:
+          t_t023t[],
+          t_t023t_en[].
+
+* key table
+    t_keys = io_tech_request_context->get_source_keys( ).
+* skip/top
+    skip   = io_tech_request_context->get_skip( ).
+    top    = io_tech_request_context->get_top( ).
+
+    limit = skip + top.
+    IF limit = 0 OR
+      limit > 200.
+      limit = 200.
+    ENDIF.
+* count/inline count
+    count       = io_tech_request_context->has_count( ).
+    inlinecount = io_tech_request_context->has_inlinecount( ).
+
+* filters
+    r_filter    = io_tech_request_context->get_filter( ).
+    t_filter_so = r_filter->get_filter_select_options( ).
+    filter      = r_filter->get_filter_string( ).
+
+* default some search values
+    srch_maktg = '%'.
+
+    LOOP AT t_filter_so INTO s_filter.
+      LOOP AT s_filter-select_options INTO s_filter_r.
+        CASE s_filter-property.
+* filter on description
+          WHEN 'DESCRIPTION'.
+            IF s_filter_r-low IS INITIAL.
+              srch_maktg = '%'.
+            ELSE.
+              srch_maktg = s_filter_r-low.
+              srch_maktg = '%' && srch_maktg && '%'.
+              TRANSLATE srch_maktg TO UPPER CASE.
+              REPLACE ALL OCCURRENCES OF '*' IN srch_maktg
+                 WITH '%'.
+              CONDENSE srch_maktg.
+            ENDIF.
+* filter on plant
+          WHEN 'PLANT'.
+
+* filter on material group
+          WHEN 'MATKL'.
+
+          WHEN OTHERS.
+            RAISE EXCEPTION TYPE /iwbep/cx_mgw_tech_exception
+                 EXPORTING
+                      textid = /iwbep/cx_mgw_tech_exception=>internal_error.
+        ENDCASE.
+      ENDLOOP.
+    ENDLOOP.
+
+* get produc list
+    SELECT a~matnr AS product_id    " productId
+           a~matkl AS matkl         " product category
+           a~meins AS measure_unit  " quantity unit
+           a~lvorm AS del_inda      " deletion indicator MARA
+           b~maktx AS description   " short description
+           c~lvorm AS del_indc      " deletion indicator MARC
+        UP TO limit ROWS
+      INTO CORRESPONDING FIELDS OF s_entity
+      FROM ( ( mara AS a
+      INNER JOIN
+               makt AS b
+        ON a~mandt = b~mandt AND
+           a~matnr = b~matnr )
+      INNER JOIN
+               marc AS c
+        ON a~mandt = c~mandt AND
+           a~matnr = c~matnr )
+     WHERE a~lvorm = space
+       AND a~matkl <> space
+       AND b~spras = sy-langu
+       AND b~maktg LIKE srch_maktg
+       AND c~lvorm = space
+     ORDER BY matkl.
+* adjust some values
+      s_entity-name             = s_entity-description.
+      s_entity-long_description = s_entity-description.
+* map product list to external format
+      IF sy-dbcnt > skip.
+        INSERT s_entity INTO TABLE et_entityset.
+      ENDIF.
+    ENDSELECT.
+
+* add description to product category
+    IF lines( et_entityset ) > 0.
+      SELECT * INTO TABLE t_t023t
+        FROM t023t
+        FOR ALL ENTRIES IN et_entityset
+       WHERE spras = sy-langu
+         AND matkl = et_entityset-matkl.
+
+      SORT t_t023t BY matkl.
+
+      IF sy-langu <> 'E'.
+        SELECT * INTO TABLE t_t023t_en
+          FROM t023t
+          FOR ALL ENTRIES IN et_entityset
+         WHERE spras = 'E'
+           AND matkl = et_entityset-matkl.
+
+        SORT t_t023t_en BY matkl.
+      ENDIF.
+
+      LOOP AT et_entityset ASSIGNING <entity>.
+        READ TABLE t_t023t INTO s_t023t
+          WITH KEY matkl = <entity>-matkl
+          BINARY SEARCH
+          TRANSPORTING wgbez.
+        IF sy-subrc = 0.
+          <entity>-category_name = s_t023t-wgbez.
+        ELSE.
+          READ TABLE t_t023t_en INTO s_t023t
+            WITH KEY matkl = <entity>-matkl
+            BINARY SEARCH
+            TRANSPORTING wgbez.
+          IF sy-subrc = 0.
+            <entity>-category_name = s_t023t-wgbez.
+          ENDIF.
+        ENDIF.
+      ENDLOOP.
+    ENDIF.
+
+    IF count = abap_true.
+      es_response_context-count = lines( et_entityset ).
+    ENDIF.
+
+    IF inlinecount = abap_true.
+      es_response_context-inlinecount = lines( et_entityset ).
+    ENDIF.
+
+  CATCH /iwbep/cx_mgw_busi_exception.
+* business error handling
+  CATCH /iwbep/cx_mgw_tech_exception.
+* technical error handling
+  ENDTRY.
+
+ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Protected Method ZCL_GW_PURCH_SPOT_CO2_DPC_EXT->SUPPLIERCOLLECTI_GET_ENTITY
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_ENTITY_NAME                 TYPE        STRING
+* | [--->] IV_ENTITY_SET_NAME             TYPE        STRING
+* | [--->] IV_SOURCE_NAME                 TYPE        STRING
+* | [--->] IT_KEY_TAB                     TYPE        /IWBEP/T_MGW_NAME_VALUE_PAIR
+* | [--->] IO_REQUEST_OBJECT              TYPE REF TO /IWBEP/IF_MGW_REQ_ENTITY(optional)
+* | [--->] IO_TECH_REQUEST_CONTEXT        TYPE REF TO /IWBEP/IF_MGW_REQ_ENTITY(optional)
+* | [--->] IT_NAVIGATION_PATH             TYPE        /IWBEP/T_MGW_NAVIGATION_PATH
+* | [<---] ER_ENTITY                      TYPE        ZCL_GW_PURCH_SPOT_CO2_MPC=>TS_SUPPLIER
+* | [!CX!] /IWBEP/CX_MGW_BUSI_EXCEPTION
+* | [!CX!] /IWBEP/CX_MGW_TECH_EXCEPTION
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+METHOD suppliercollecti_get_entity.
+
+* data declaration
+  DATA:
+        s_key         TYPE /iwbep/s_mgw_tech_pair,
+        t_keys        TYPE /iwbep/t_mgw_tech_pairs,
+* application data
+        lifnr         TYPE lifnr,
+        bukrs         TYPE bukrs,
+        purch_org     TYPE ekorg,
+        s_entity      TYPE zcl_gw_purch_spot_co2_mpc=>ts_supplier,
+* work data
+        subrc         TYPE sy-subrc.
+
+  TRY.
+* key table
+    t_keys = io_tech_request_context->get_keys( ).
+
+    IF lines( t_keys ) <> 1.
+      RAISE EXCEPTION TYPE /iwbep/cx_mgw_busi_exception.
+    ENDIF.
+
+    READ TABLE t_keys INTO s_key
+         INDEX 1.
+    lifnr = s_key-value.
+
+* default some values
+    IF bukrs IS INITIAL.
+      bukrs = '0100'.
+    ENDIF.
+
+    IF purch_org IS INITIAL.
+      purch_org = 'SP02'. " or SP02
+    ENDIF.
+
+* LFA1 client level
+* LFB1 company level
+* LFM1 purchasing org. level
+
+* get supplier list
+    SELECT a~lifnr AS bp_id         " supplierID
+           a~intad AS email_address " email
+           b~land1 AS COUNTRY       " country
+           b~name1 AS company_name  " supplier name
+           b~ort01 AS city          " city
+           b~pstlz AS postal_code   " postal code
+           b~stras AS street        " street/house number
+           b~telf1 AS phone_number  " phone number
+      INTO CORRESPONDING FIELDS OF er_entity
+      FROM ( ( lfb1 AS a
+        INNER JOIN lfa1 AS b
+        ON b~mandt = a~mandt AND
+           b~lifnr = a~lifnr )
+        INNER JOIN lfm1 AS C
+        ON c~mandt = a~mandt AND
+           c~lifnr = a~lifnr )
+      WHERE a~lifnr = lifnr
+        AND a~bukrs = bukrs
+        AND a~loevm = abap_false
+        AND b~loevm = abap_false
+        AND c~ekorg = purch_org
+        AND c~loevm = abap_false.
+    ENDSELECT.
+
+  CATCH /iwbep/cx_mgw_busi_exception.
+* business error handling
+  CATCH /iwbep/cx_mgw_tech_exception.
+* technical error handling
+  ENDTRY.
+
+ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Protected Method ZCL_GW_PURCH_SPOT_CO2_DPC_EXT->SUPPLIERCOLLECTI_GET_ENTITYSET
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_ENTITY_NAME                 TYPE        STRING
+* | [--->] IV_ENTITY_SET_NAME             TYPE        STRING
+* | [--->] IV_SOURCE_NAME                 TYPE        STRING
+* | [--->] IT_FILTER_SELECT_OPTIONS       TYPE        /IWBEP/T_MGW_SELECT_OPTION
+* | [--->] IS_PAGING                      TYPE        /IWBEP/S_MGW_PAGING
+* | [--->] IT_KEY_TAB                     TYPE        /IWBEP/T_MGW_NAME_VALUE_PAIR
+* | [--->] IT_NAVIGATION_PATH             TYPE        /IWBEP/T_MGW_NAVIGATION_PATH
+* | [--->] IT_ORDER                       TYPE        /IWBEP/T_MGW_SORTING_ORDER
+* | [--->] IV_FILTER_STRING               TYPE        STRING
+* | [--->] IV_SEARCH_STRING               TYPE        STRING
+* | [--->] IO_TECH_REQUEST_CONTEXT        TYPE REF TO /IWBEP/IF_MGW_REQ_ENTITYSET(optional)
+* | [<---] ET_ENTITYSET                   TYPE        ZCL_GW_PURCH_SPOT_CO2_MPC=>TT_SUPPLIER
+* | [<---] ES_RESPONSE_CONTEXT            TYPE        /IWBEP/IF_MGW_APPL_SRV_RUNTIME=>TY_S_MGW_RESPONSE_CONTEXT
+* | [!CX!] /IWBEP/CX_MGW_BUSI_EXCEPTION
+* | [!CX!] /IWBEP/CX_MGW_TECH_EXCEPTION
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+METHOD suppliercollecti_get_entityset.
+
+* data declaration
+  DATA:
+        skip          TYPE int4,
+        top           TYPE int4,
+        t_keys        TYPE /iwbep/t_mgw_tech_pairs,
+        r_filter      TYPE REF TO /iwbep/if_mgw_req_filter,
+        t_filter_so   TYPE /iwbep/t_mgw_select_option,
+* application data
+        bukrs         TYPE bukrs,
+        purch_org     TYPE ekorg,
+        srch_country  TYPE land1,
+        srch_vendor   TYPE mcdk1,
+        s_entity      TYPE zcl_gw_purch_spot_co2_mpc=>ts_supplier,
+* work data
+        s_filter      TYPE /iwbep/s_mgw_select_option,
+        s_filter_r    TYPE /iwbep/s_cod_select_option,
+        filter        TYPE string,
+        limit         TYPE i,
+        cond          TYPE string,
+        subrc         TYPE sy-subrc.
+
+* initialization
+  CLEAR:
+        bukrs,
+        purch_org,
+        srch_country,
+        srch_vendor,
+        limit,
+        cond.
+
+  TRY.
+* key table
+    t_keys = io_tech_request_context->get_source_keys( ).
+* skip/top
+    skip   = io_tech_request_context->get_skip( ).
+    top    = io_tech_request_context->get_top( ).
+
+    limit = skip + top.
+    IF limit = 0 OR
+      limit > 200.
+      limit = 200.
+    ENDIF.
+* filters
+    r_filter    = io_tech_request_context->get_filter( ).
+    t_filter_so = r_filter->get_filter_select_options( ).
+    filter      = r_filter->get_filter_string( ).
+
+    LOOP AT t_filter_so INTO s_filter.
+      LOOP AT s_filter-select_options INTO s_filter_r.
+        CASE s_filter-property.
+          WHEN 'BP_ID'.
+* to be implemented
+          WHEN 'COMPANY_NAME'.
+            IF s_filter_r-low IS INITIAL.
+*              srch_vendor = '%'.
+            ELSE.
+              srch_vendor = '%' && s_filter_r-low && '%'.
+              TRANSLATE srch_vendor TO UPPER CASE.
+              REPLACE ALL OCCURRENCES OF '*' IN srch_vendor
+                 WITH '%'.
+              CONDENSE srch_vendor.
+            ENDIF.
+          WHEN 'CITY'.
+* to be implemented
+          WHEN 'POSTAL_CODE'.
+* to be implemented
+          WHEN 'COUNTRY'.
+            srch_country = s_filter_r-low.
+            TRANSLATE srch_country TO UPPER CASE.
+          WHEN 'COMP_CODE'.
+* filter on company code is mandatory
+            bukrs     = '0100'.
+          WHEN 'PURCH_ORG'.
+* filter on purchasing organisation is mandatory
+            purch_org = 'SP02'.
+          WHEN OTHERS.
+            RAISE EXCEPTION TYPE /iwbep/cx_mgw_tech_exception
+                 EXPORTING
+                      textid = /iwbep/cx_mgw_tech_exception=>internal_error.
+        ENDCASE.
+      ENDLOOP.
+    ENDLOOP.
+
+* default some values
+    IF bukrs IS INITIAL.
+      bukrs = '0100'.
+    ENDIF.
+
+    IF purch_org IS INITIAL.
+      purch_org = 'SP02'. " or SP02
+    ENDIF.
+
+    IF srch_vendor IS INITIAL.
+      srch_vendor = '%'.
+    ENDIF.
+
+* generate the WHERE clause dynamically
+*      WHERE a~bukrs = bukrs
+*        AND a~loevm = abap_false
+*        AND b~mcod1 LIKE srch_vendor
+*        AND b~loevm = abap_false
+*        AND c~ekorg = purch_org
+*        AND c~loevm = abap_false.
+
+    cond = 'a~bukrs =' && ` ` && cl_abap_dyn_prg=>quote( bukrs ).
+    cond = cond && ' AND'.
+    cond = cond && ' a~loevm =' && ` ` && cl_abap_dyn_prg=>quote( abap_false ).
+    cond = cond && ' AND'.
+    IF srch_vendor IS NOT INITIAL.
+      cond = cond && ' b~mcod1 LIKE' && ` ` && cl_abap_dyn_prg=>quote( srch_vendor ).
+      cond = cond && ' AND'.
+    ENDIF.
+    IF srch_country IS NOT INITIAL.
+      cond = cond && ' b~land1 =' && ` ` && cl_abap_dyn_prg=>quote( srch_country ).
+      cond = cond && ' AND'.
+    ENDIF.
+    cond = cond && ' b~loevm =' && ` ` && cl_abap_dyn_prg=>quote( abap_false ).
+    cond = cond && ' AND'.
+    cond = cond && ' c~ekorg =' && ` ` && cl_abap_dyn_prg=>quote( purch_org ).
+    cond = cond && ' AND'.
+    cond = cond && ' c~loevm =' && ` ` && cl_abap_dyn_prg=>quote( abap_false ).
+
+* LFA1 client level
+* LFB1 company level
+* LFM1 purchasing org. level
+
+* get supplier list
+    SELECT a~lifnr AS bp_id         " supplierID
+           a~intad AS email_address " email
+           b~land1 AS country       " country
+           b~name1 AS company_name  " supplier name
+           b~ort01 AS city          " city
+           b~pstlz AS postal_code   " postal code
+           b~stras AS street        " street/house number
+           b~telf1 AS phone_number  " phone number
+        UP TO limit ROWS
+      INTO CORRESPONDING FIELDS OF s_entity
+      FROM ( ( lfb1 AS a
+        INNER JOIN lfa1 AS b
+        ON b~mandt = a~mandt AND
+           b~lifnr = a~lifnr )
+        INNER JOIN lfm1 AS c
+        ON c~mandt = a~mandt AND
+           c~lifnr = a~lifnr )
+      WHERE (cond).
+* map supplier to entity
+      IF sy-dbcnt > skip.
+        INSERT s_entity INTO TABLE et_entityset.
+      ENDIF.
+    ENDSELECT.
+
+  CATCH cx_sy_dynamic_osql_error.
+* business error handling
+  CATCH /iwbep/cx_mgw_busi_exception.
+* business error handling
+  CATCH /iwbep/cx_mgw_tech_exception.
+* technical error handling
+  ENDTRY.
+
+ENDMETHOD.
+ENDCLASS.
