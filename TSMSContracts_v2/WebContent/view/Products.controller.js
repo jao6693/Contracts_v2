@@ -21,7 +21,6 @@ total.tsmscontracts.util.Controller.extend("total.tsmscontracts.view.Products", 
 	onNavBack : function() {
 		// publish the event to the channel app
 		this.getEventBus().publish("app", "Return", null);
-
 		// then back to contract view
 		window.history.go(-1);
 	},

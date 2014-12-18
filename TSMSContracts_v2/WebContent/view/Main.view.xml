@@ -3,6 +3,7 @@
 	xmlns:mvc="sap.ui.core.mvc"
 	xmlns:com="sap.suite.ui.commons"
 	xmlns:l="sap.ui.layout"
+	xmlns:ux3="sap.ui.ux3"
 	xmlns="sap.m"
 	xmlns:cd="http://schemas.sap.com/sapui5/extension/sap.ui.core.CustomData/1"
 	controllerName="total.tsmscontracts.view.Main" >
@@ -22,7 +23,7 @@
 				intro="This is a new UI to create a contract directly in SAP"
 				responsive="true"
 				binding="{local>contractHeader}"
-				number="0"
+				number="{local>amount}"
 				numberUnit="{local>currencyCode}"
 				numberState="Success"
 				backgroundDesign="Translucent">
@@ -147,13 +148,36 @@
 							value="{local>Weight}"
 							description="{local>QuantityUnit}"
 							width="150px"
-							fieldWidth="80%" />
+							fieldWidth="80%"
+							valueLiveUpdate="true"
+							liveChange="onAmountChange" >
+							<customData>
+								<core:CustomData
+									key="productId"
+									value="{local>Material}" />
+								<core:CustomData
+									key="quantity"
+									value="{local>Weight}" />
+								<core:CustomData
+									key="price"
+									value="{local>Price}" />
+								<core:CustomData
+									key="amount"
+									value="{local>Weight}x{local>Price}" />
+							</customData>
+						</Input>
 						<Input
 							type="Number"
 							value="{local>Price}"
 							description="{local>CurrencyCode}"
 							width="150px"
-							fieldWidth="80%" />
+							fieldWidth="80%"
+							valueLiveUpdate="true"
+							liveChange="onAmountChange"
+							cd:productId="{local>Material}"
+							cd:quantity="{local>Weight}"
+							cd:price="{local>Price}"
+							cd:amount="{local>Weight}x{local>Price}" />
 						<Button
 							icon="sap-icon://action-settings"
 							type="Transparent"
@@ -183,10 +207,18 @@
 		</content>
 		<footer>
 			<Toolbar>
+				<ux3:NotificationBar
+					id="NB1"
+					visibleStatus="None" >
+				</ux3:NotificationBar>
 				<ToolbarSpacer/>
 				<Button
+					text="Clear"
+					type="Emphasized"
+					press="onClear" />
+				<Button
 					text="Save"
-					type="Emphasized" 
+					type="Emphasized"
 					press="onSave" />
 			</Toolbar>
 		</footer>

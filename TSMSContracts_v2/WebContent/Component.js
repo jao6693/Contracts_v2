@@ -98,5 +98,4 @@ sap.ui.core.UIComponent.extend("total.tsmscontracts.Component", {
         this.getRouter().initialize();
 
     }
-    
 });

@@ -12,6 +12,8 @@ total.tsmscontracts.util.Controller.extend("total.tsmscontracts.view.Main", {
 
 		// subscribe to Return event to close all items in Tab Bar
 		this.getEventBus().subscribe("app", "Return", this.returnToContract, this);
+		// subscribe to live change in quantity/price fields to update total amount
+		this.getEventBus().subscribe("app", "UpdateAmount", this.updateAmount, this);
 
 		this.getRouter().attachRoutePatternMatched(this.routeMatched, this);
 		// define keys for Supplier Value Help Dialog
@@ -28,6 +30,8 @@ total.tsmscontracts.util.Controller.extend("total.tsmscontracts.view.Main", {
 		oLocalModel.setProperty("/createdAt", sNow);
 //		oLocalModel.oData.negociatedAt = new Date();
 		oLocalModel.setProperty("/negociatedAt", dNow);
+		// initialize amount
+		oLocalModel.setProperty("/amount", 0);
 		
 		// asynchronous call
         oModel.read("/PersonalizationCollection", null, null, false,
@@ -80,6 +84,18 @@ total.tsmscontracts.util.Controller.extend("total.tsmscontracts.view.Main", {
 		oLocalModel.setProperty("/products_i", aProductsIndex);
 		// tell the application the product has been removed from the selected ones
 		this.getEventBus().publish("app", "ProductRemoved", sProductId);
+	},
+
+	onAmountChange : function(oEvent) {
+		// var sQty = oEvent.getParameter("newValue");
+		var iQty = oEvent.getSource().data("quantity");
+		var iPrice = oEvent.getSource().data("price");
+		var iAmount = oEvent.getSource().data("amount");
+		var iAdjustment = iPrice * iQty - iAmount;
+		// let the view know that is has to refresh
+		this.getEventBus().publish("app", "UpdateAmount", {
+			adjustment : iAdjustment
+		});
 	},
 
 	onConfigure : function(oEvent) {
@@ -189,9 +205,18 @@ total.tsmscontracts.util.Controller.extend("total.tsmscontracts.view.Main", {
 	},
 
 	onSave : function() {
+		// set the busy dialog
+		if (!this.oBusyDialog) {
+			this.oBusyDialog = new sap.m.BusyDialog();
+		};
+
+		var that = this;
+//		this.getView().setBusyIndicatorDelay(0);
+//		this.getView().setBusy(true);
+
 		// get local model
 		var oLocalModel = this.getView().getModel("local");
-		
+
 		var mPayload = {};
 		mPayload.Number = '0000000001';
 //		mPayload.CompCode = oContract.header[0].companyCode;
@@ -235,30 +260,83 @@ total.tsmscontracts.util.Controller.extend("total.tsmscontracts.view.Main", {
 
 		// send OData Create request
 		var oModel = this.getView().getModel();
+		oModel.attachRequestSent(function() {
+			that.oBusyDialog.open();
+		});
+		oModel.attachRequestCompleted(function() {
+			that.oBusyDialog.close();
+		});
 		oModel.refreshSecurityToken();
 
+		this.oBusyDialog.open();
 		// create deep INSERT create request
+		this.oModel = oModel;
+
 		oModel.create("/PurchaseContractHeaderCollection", mPayload, {
-				success : jQuery.proxy(function(mResponse) {
-		// ID of newly inserted product is available in mResponse.ID
-//					this.oBusyDialog.close();
-//					sap.m.MessageToast.show("Contract '" + mResponse.Number + "' created");
-					sap.ca.ui.message.showMessageBox({
-						type: sap.ca.ui.message.Type.SUCCESS,
-						message: "Contract '" + mResponse.Number + "' created",
-						details: "Contract '" + mResponse.Number + "' created"
-						});
+			async : true,
+			// request is asynchronous to be able to see the busy dialog
+			// otherwise waiting for response blocks execution of JavaScript
+			success : jQuery.proxy(function(oData, oResponse) {
+				// get headers
+				// headers is an array without index!?!?!?
+//				var oSAPMsg = oResponse.headers['sap-message'];
 				
-				}, this),
-				error : jQuery.proxy(function() {
-//					this.oBusyDialog.close();
-					this.showErrorAlert("Problem creating contract");
-					}
-				, this)
-			}
-		);
+				var oMsgModel = new sap.ui.model.json.JSONModel();
+				oMsgModel = JSON.parse(oResponse.headers['sap-message']);
+				// ID of newly inserted product is available in mResponse.ID
+				sap.ca.ui.message.showMessageBox({
+					type: sap.ca.ui.message.Type.SUCCESS,
+					message: "Contract '" + oData.Number + "' created",
+					details: "Contract '" + oData.Number + "' created"
+					});
+
+				// add messages from backend in the toolbar
+
+				// get toolbar
+				var oNotificationBar = this.getView().byId("NB1");
+
+				if (oNotificationBar.indexOfNotifier("Notifier") == -1) {
+					var oNotifier = new sap.ui.ux3.Notifier({
+						title : "Messages"
+					});
+				};
+				// initialize date
+				if (!sNow) {
+					var sNow = new Date().toDateString();
+				};
+
+				// get number of detailed messages in response
+				var aMsgDetails = oMsgModel.details;
+				
+				for ( var i = 0; i < aMsgDetails.length; i++ ) {
+
+					var oMessage = new sap.ui.core.Message({
+						text : aMsgDetails[i].message,
+						timestamp : sNow,
+						icon : "images/Thumbnail_32.png",
+						readOnly : true
+					});
+
+					oNotifier.addMessage(oMessage);
+
+//					oMessage.destroy();
+				};
+
+//				oNotificationBar.removeAllNotifiers();
+				oNotificationBar.addNotifier(oNotifier);
+				oNotificationBar.setVisibleStatus("Default");
+			}, this),
+
+			error : jQuery.proxy(function() {
+				sap.ca.ui.message.showMessageBox({
+					type: sap.ca.ui.message.Type.ERROR,
+					message: "Application error",
+					details: "See notification bar for details"
+					});	
+			}, this)
+		});
 	},
-	
+
 	// functions
 	routeMatched : function(oEvent) {
 
@@ -271,6 +349,17 @@ total.tsmscontracts.util.Controller.extend("total.tsmscontracts.view.Main", {
 		oITBar.setExpanded(false);
 	},
 
+	updateAmount : function(channelId, eventId, data) {
+		// get local model
+		var oLocalModel = this.getView().getModel("local");
+		// get the total amount of the contract
+		var iAmount = oLocalModel.getProperty("/amount");
+		// adjust the value
+		iAmount += data.adjustment;
+		// update the model accordingly
+		oLocalModel.setProperty("/amount", iAmount);
+	},
+	
 	searchInF4 : function(oFilters) {
 		var aFilters = [];
 		// get restriction on supplier name
